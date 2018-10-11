@@ -1,12 +1,21 @@
 import os
 files = ['matrix_seeds_to_all_targets','matrix_seeds_to_all_targets_lengths']
 subjects = [xx.strip() for xx in '''
-188145  206929  238033  360030  401422  453542  468050
-192237  208630  248238  368753  413934  454140  481042
-206323  227533  325129  392447  421226  463040'''.split()]
-ROIs = ['L'+str(i) for i in range(1,181)] + ['R'+str(i) for i in range(1,181)]
+192237R 227533R 368753L 453542L 468050L'''.split()]
+ROI_L = ['L'+str(i) for i in range(1,181)]
+ROI_R = ['R'+str(i) for i in range(1,181)]
 
 for sub in subjects:
+    ROIs = []
+    if sub.endswith('L'):
+        sub = sub[:-1]
+        ROIs = ROI_L
+    elif sub.endswith('R'):
+        sub = sub[:-1]
+        ROIs = ROI_R
+    else:
+        ROIs = ROI_L + ROI_R
+
     for roi in ROIs:
         print(sub+' ' + roi)
         for file in files:
