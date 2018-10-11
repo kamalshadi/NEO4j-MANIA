@@ -86,6 +86,7 @@ def data_raw(sub):
             fn2 = tmp.replace('XXX',sub+'/')
             T = readS2R(fn1)
             D = readS2R_L(fn2)
+            query = ''
             for j in range(1,181):
                 if (i==j):continue
                 weight = max(T[:,j-1])
@@ -106,7 +107,9 @@ def data_raw(sub):
                         print('--------')
                     z = z.replace('EEE',str(weight))
                     z = z.replace('FFF',str(length))
-                    graph.run(z) #.execute(z)
+                    # graph.run(z) #.execute(z)
+                    query = query + '\n\n' + z
+            graph.run(query)
 
         if left:
             # Left hemisphere
@@ -116,6 +119,7 @@ def data_raw(sub):
             fn2 = tmp.replace('XXX',sub+'/')
             T = readS2R(fn1)
             D = readS2R_L(fn2)
+            query = ''
             for j in range(1,181):
                 if (i==j):continue
                 weight = max(T[:,j-1])
@@ -136,7 +140,9 @@ def data_raw(sub):
                         print('--------')
                     z = z.replace('EEE',str(weight))
                     z = z.replace('FFF',str(length))
-                    graph.run(z) #.execute(z)
+                    # graph.run(z) #.execute(z)
+                    query = query + '\n\n' + z
+            graph.run(query)
 
 def assign_labels():
     from labels import D
