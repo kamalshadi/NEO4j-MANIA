@@ -10,7 +10,7 @@ import numpy as num
 from tqdm import tqdm
 import pickle as pk
 
-graph = Graph(password='1234')
+graph = Graph("bolt://localhost:7687", password='1234')
 
 
 def readS2R(fn):
@@ -47,84 +47,102 @@ def readS2R_L(fn):
 def data_raw(sub):
     print("------------------------")
     print('Subject:'+sub)
-    print("create right hemisphere nodes")
-    for i in range(1,181):
-        z = '''MATCH (a:ROI{name:"RXXX"}) return a'''.replace('XXX',str(i))
-        mynode = list(graph.run(z))
-        if (len(mynode)> 0):
-            pass
-        else:
-            alice = Node("ROI", name="R"+str(i),ind = i, label = "test", hemisphere="R")
-            graph.create(alice)
+    left, right = True, True
+    if sub.endswith('L'):
+        sub = sub[:-1]
+        right = False
+    elif sub.endswith('R'):
+        sub = sub[:-1]
+        left = False
 
-    print("create left hemisphere nodes")
-    for i in range(1,181):
-        z = '''MATCH (a:ROI{name:"LXXX"}) return a'''.replace('XXX',str(i))
-        mynode = list(graph.run(z))
-        if (len(mynode)> 0):
-            pass
-        else:
-            bob = Node("ROI", name="L"+str(i),ind = i, label = "test", hemisphere="L")
-            graph.create(bob)
+    if right:
+        print("create right hemisphere nodes")
+        for i in range(1,181):
+            z = '''MATCH (a:ROI{name:"RXXX"}) return a'''.replace('XXX',str(i))
+            mynode = list(graph.run(z))
+            if (len(mynode)> 0):
+                pass
+            else:
+                alice = Node("ROI", name="R"+str(i),ind = i, label = "test", hemisphere="R")
+                graph.create(alice)
+
+    if left:
+        print("create left hemisphere nodes")
+        for i in range(1,181):
+            z = '''MATCH (a:ROI{name:"LXXX"}) return a'''.replace('XXX',str(i))
+            mynode = list(graph.run(z))
+            if (len(mynode)> 0):
+                pass
+            else:
+                bob = Node("ROI", name="L"+str(i),ind = i, label = "test", hemisphere="L")
+                graph.create(bob)
 
     print("creating relationships")
     for i in tqdm(range(1,181),total=180):
-        tmp = 'DATA/XXX/R'+str(i)+'/matrix_seeds_to_all_targets'
-        fn1 = tmp.replace('XXX',sub+'/')
-        tmp = 'DATA/XXX/R'+str(i)+'/matrix_seeds_to_all_targets_lengths'
-        fn2 = tmp.replace('XXX',sub+'/')
-        T = readS2R(fn1)
-        D = readS2R_L(fn2)
-        for j in range(1,181):
-            if (i==j):continue
-            weight = max(T[:,j-1])
-            if weight > -1:
-                # RIGHT HEMESPHERE
-                length = D[num.argmax(T[:,j-1]),j-1]
-                z = '''MATCH (a:ROI{hemisphere:"R"}),(b:ROI{hemisphere:"R"})
-                WHERE a.name = 'AAA' AND b.name = 'BBB'
-                CREATE (a)-[:NOS {SUBJECT:XXX,_weight:CCC,_length: DDD,weight:EEE,length:FFF}]->(b)'''.replace('XXX',sub)
-                z = z.replace('AAA','R'+str(i))
-                z = z.replace('BBB','R'+str(j))
-                try:
-                    z = z.replace('CCC','['+','.join([str(xx) for xx in T[:,j-1]])+']')
-                    z = z.replace('DDD','['+','.join([str(xx) for xx in D[:,j-1]])+']')
-                except:
-                    print('Right:')
-                    print("Error for i="+str(i))
-                    print('--------')
-                z = z.replace('EEE',str(weight))
-                z = z.replace('FFF',str(length))
-                graph.run(z) #.execute(z)
+        if right:
+            tmp = 'DATA/XXX/R'+str(i)+'/matrix_seeds_to_all_targets'
+            fn1 = tmp.replace('XXX',sub+'/')
+            tmp = 'DATA/XXX/R'+str(i)+'/matrix_seeds_to_all_targets_lengths'
+            fn2 = tmp.replace('XXX',sub+'/')
+            T = readS2R(fn1)
+            D = readS2R_L(fn2)
+            query = ''
+            for j in range(1,181):
+                if (i==j):continue
+                weight = max(T[:,j-1])
+                if weight > -1:
+                    # RIGHT HEMESPHERE
+                    length = D[num.argmax(T[:,j-1]),j-1]
+                    z = '''MATCH (a:ROI{hemisphere:"R"}),(b:ROI{hemisphere:"R"})
+                    WHERE a.name = 'AAA' AND b.name = 'BBB'
+                    CREATE (a)-[:NOS {SUBJECT:XXX,_weight:CCC,_length: DDD,weight:EEE,length:FFF}]->(b)'''.replace('XXX',sub)
+                    z = z.replace('AAA','R'+str(i))
+                    z = z.replace('BBB','R'+str(j))
+                    try:
+                        z = z.replace('CCC','['+','.join([str(xx) for xx in T[:,j-1]])+']')
+                        z = z.replace('DDD','['+','.join([str(xx) for xx in D[:,j-1]])+']')
+                    except:
+                        print('Right:')
+                        print("Error for i="+str(i))
+                        print('--------')
+                    z = z.replace('EEE',str(weight))
+                    z = z.replace('FFF',str(length))
+                    # graph.run(z) #.execute(z)
+                    query = query + '\n\n' + z
+            graph.run(query)
 
-        # Left hemisphere
-        tmp = 'DATA/XXX/L'+str(i)+'/matrix_seeds_to_all_targets'
-        fn1 = tmp.replace('XXX',sub+'/')
-        tmp = 'DATA/XXX/L'+str(i)+'/matrix_seeds_to_all_targets_lengths'
-        fn2 = tmp.replace('XXX',sub+'/')
-        T = readS2R(fn1)
-        D = readS2R_L(fn2)
-        for j in range(1,181):
-            if (i==j):continue
-            weight = max(T[:,j-1])
-            if weight > -1:
-                # LEFT HEMESPHERE
-                length = D[num.argmax(T[:,j-1]),j-1]
-                z = '''MATCH (a:ROI{hemisphere:"L"}),(b:ROI{hemisphere:"L"})
-                WHERE a.name = 'AAA' AND b.name = 'BBB'
-                CREATE (a)-[:NOS { SUBJECT:XXX, _weight:CCC, _length:DDD,weight:EEE,length:FFF}]->(b)'''.replace('XXX',sub)
-                z = z.replace('AAA','L'+str(i))
-                z = z.replace('BBB','L'+str(j))
-                try:
-                    z = z.replace('CCC','['+','.join([str(xx) for xx in T[:,j-1]])+']')
-                    z = z.replace('DDD','['+','.join([str(xx) for xx in D[:,j-1]])+']')
-                except:
-                    print('Left:')
-                    print("Error for i="+str(i))
-                    print('--------')
-                z = z.replace('EEE',str(weight))
-                z = z.replace('FFF',str(length))
-                graph.run(z) #.execute(z)
+        if left:
+            # Left hemisphere
+            tmp = 'DATA/XXX/L'+str(i)+'/matrix_seeds_to_all_targets'
+            fn1 = tmp.replace('XXX',sub+'/')
+            tmp = 'DATA/XXX/L'+str(i)+'/matrix_seeds_to_all_targets_lengths'
+            fn2 = tmp.replace('XXX',sub+'/')
+            T = readS2R(fn1)
+            D = readS2R_L(fn2)
+            query = ''
+            for j in range(1,181):
+                if (i==j):continue
+                weight = max(T[:,j-1])
+                if weight > -1:
+                    # LEFT HEMESPHERE
+                    length = D[num.argmax(T[:,j-1]),j-1]
+                    z = '''MATCH (a:ROI{hemisphere:"L"}),(b:ROI{hemisphere:"L"})
+                    WHERE a.name = 'AAA' AND b.name = 'BBB'
+                    CREATE (a)-[:NOS { SUBJECT:XXX, _weight:CCC, _length:DDD,weight:EEE,length:FFF}]->(b)'''.replace('XXX',sub)
+                    z = z.replace('AAA','L'+str(i))
+                    z = z.replace('BBB','L'+str(j))
+                    try:
+                        z = z.replace('CCC','['+','.join([str(xx) for xx in T[:,j-1]])+']')
+                        z = z.replace('DDD','['+','.join([str(xx) for xx in D[:,j-1]])+']')
+                    except:
+                        print('Left:')
+                        print("Error for i="+str(i))
+                        print('--------')
+                    z = z.replace('EEE',str(weight))
+                    z = z.replace('FFF',str(length))
+                    # graph.run(z) #.execute(z)
+                    query = query + '\n\n' + z
+            graph.run(query)
 
 def assign_labels():
     from labels import D
@@ -279,11 +297,10 @@ def threshold_raw(hem,sub,T="1500"):
 # mania_raw('L','413934')
 # mania_raw('L','421226')
 subjects = [xx.strip() for xx in '''
-401422  453542  468050'''.split()]
+206323 208630 401422 248238 413934
+192237R 227533R 368753L 453542L 468050L'''.split()]
 
-'''188145  206929  238033  360030  401422  453542  468050
-192237  208630  248238  368753  413934  454140  481042
-206323  227533  325129  392447  421226  463040'''
+'''188145'''
 
 for sub in subjects:
     print(sub)
