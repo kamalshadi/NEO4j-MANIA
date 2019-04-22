@@ -105,42 +105,6 @@ def data_raw(sub):
                 z = z.replace('FFF',str(length))
                 graph.run(z) #.execute(z)
 
-def assign_labels():
-    from labels import D
-    for i in range(1,361):
-        if i > 180:
-            j = i - 180
-            K = 'L'
-        else:
-            j = i
-            K = "R"
-        z = """MATCH (a:ROI)
-        WHERE a.name = 'AAA'
-        set a.label='XXX'""".replace('AAA',K+str(j)).replace('XXX',D[i])
-        graph.run(z)
-
-def adjacency_physical():
-    import nibabel as bl
-    img = bl.load("adj.pconn.nii")
-    data = img.get_data()
-    for i in range(1,361):
-        for j in range(i,361):
-            if i > 180:
-                q = i - 180
-                H1 = 'L'
-            else:
-                q = i
-                H1 = "R"
-            if j > 180:
-                v = j - 180
-                H2 = 'L'
-            else:
-                v = j
-                H2 = "R"
-            z = """MATCH (a:ROI)-[r:NOS]-(b:ROI)
-            WHERE a.name = 'AAA' and b.name = 'BBB'
-            set r.border=XXX""".replace('AAA',H1+str(q)).replace('BBB',H2+str(v)).replace('XXX',str(data[i-1,j-1]))
-            graph.run(z)
 
 
 
